@@ -1,8 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+#include <omp.h>
 
 #define MAX_PRINT_DIM 20
+#define NS_PER_SEC 1000000000
+#define MS_PER_SEC 1000
 
 void initHilbert(float * data, int rows, int columns);
 void printMat(float * data, int rows, int columns);
@@ -11,8 +15,8 @@ void matVecProduct(float * matrix, float * vector, float * output, int rows,
                    int columns);
 float matSum(float * matrix, int rows, int columns);
 void doBasicDemoMultiplication(int rows, int columns);
-void doBenchmark(int rows, int columns);
-
+void doBenchmark(int rows, int columns, int iterations);
+long computeTimeDiff(struct timespec *start, struct timespec *end);
 
 /**
  * start the program
@@ -25,8 +29,9 @@ int main(int argc, char * argv[]){
   int benchmarkMode = 0;
   if(strcmp("-b", argv[1]) == 0){
     benchmarkMode = 1;
-    if(argc < 4){
-      fprintf(stderr, "Not enough arguments!\nUsage: %s -b rows columns\n",
+    if(argc < 5){
+      fprintf(stderr,
+              "Not enough arguments!\nUsage: %s -b rows columns iterations\n",
               argv[0]);
       return -1;
     }
@@ -35,13 +40,60 @@ int main(int argc, char * argv[]){
   long columns = strtol(argv[2 + benchmarkMode], NULL, 10);
 
   if(benchmarkMode){
-    doBenchmark(rows, columns);
+    long iterations = strtol(argv[3 + benchmarkMode], NULL, 10);
+    doBenchmark(rows, columns, iterations);
   } else {
     doBasicDemoMultiplication(rows, columns);
   }
 }
 
-void doBenchmark(int rows, int columns){}
+/**
+ * Does a matrix vector product iterations times using a matrix of size
+ * rows x columns for the product.
+ *
+ * @param the number of rows to process (this is also the number of threads)
+ * @param the number of columns to process
+ * @param iterations the number of times to repeat the multiplication
+ */
+void doBenchmark(int rows, int columns, int iterations){
+  float matrix[rows * columns];
+  float vector[columns];
+  float output[rows];
+
+  initHilbert(&matrix[0], rows, columns);
+  initConst(&vector[0], rows, 1, 1);
+
+  struct timespec startTime;
+  struct timespec endTime;
+  clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &startTime);
+  for(int i = 0; i < iterations; i++){
+    matVecProduct(&matrix[0], &vector[0], &output[0], rows, columns);
+  }
+  clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &endTime);
+  long difference = computeTimeDiff(&startTime, &endTime);
+  double millisecondTime = difference / 1.0 * MS_PER_SEC / NS_PER_SEC;
+
+  int nthreads    = omp_get_num_threads();
+  printf("%d iterations of [%d x %d] * [%d] took %lf ms on %d threads\n",
+         iterations, rows, columns, rows, millisecondTime, nthreads);
+}
+
+/**
+ * computes the diffence between to times in nanoseconds
+ *
+ * @param start the time the measurement started
+ * @param end the time the measurement ended
+ * @return the number of ns between end and start
+ */
+long computeTimeDiff(struct timespec *start, struct timespec *end){
+  long delta = 0;
+  if(( end->tv_nsec - start->tv_nsec ) < 0){
+    delta += NS_PER_SEC;
+  }
+  delta += end->tv_nsec - start->tv_nsec;
+  delta += NS_PER_SEC * ( end->tv_sec - start->tv_sec );
+  return delta;
+}
 
 /**
  * does a multiplication and prints the result
@@ -156,6 +208,7 @@ void matVecProduct(float * matrix, float * vector, float * output, int rows,
  * @param matrix the matrix to sum
  * @param the number of rows
  * @param the number of columns
+ * @return the element sum of the matrix
  */
 float matSum(float * matrix, int rows, int columns){
   float output = 0;
