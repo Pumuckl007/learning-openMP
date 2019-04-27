@@ -15,7 +15,7 @@ void matVecProduct(float * matrix, float * vector, float * output, int rows,
                    int columns);
 float matSum(float * matrix, int rows, int columns);
 void doBasicDemoMultiplication(int rows, int columns);
-void doBenchmark(int rows, int columns, int iterations);
+void doBenchmark(int rows, int columns, int iterations, int benchmarkMode);
 long computeTimeDiff(struct timespec *start, struct timespec *end);
 
 /**
@@ -36,16 +36,27 @@ int main(int argc, char * argv[]){
       return -1;
     }
   }
+  if(strcmp("-csv", argv[2]) == 0){
+    benchmarkMode = 2;
+    if(argc < 6){
+      fprintf(stderr,
+              "Not enough arguments!\nUsage: %s -b -csv rows columns iterations\n",
+              argv[0]);
+      return -1;
+    }
+  }
   long rows    = strtol(argv[1 + benchmarkMode], NULL, 10);
   long columns = strtol(argv[2 + benchmarkMode], NULL, 10);
 
   if(benchmarkMode){
     long iterations = strtol(argv[3 + benchmarkMode], NULL, 10);
-    doBenchmark(rows, columns, iterations);
+    doBenchmark(rows, columns, iterations, benchmarkMode);
   } else {
     doBasicDemoMultiplication(rows, columns);
   }
 }
+
+static int threadCount = 0;
 
 /**
  * Does a matrix vector product iterations times using a matrix of size
@@ -54,8 +65,9 @@ int main(int argc, char * argv[]){
  * @param the number of rows to process (this is also the number of threads)
  * @param the number of columns to process
  * @param iterations the number of times to repeat the multiplication
+ * @param benchmarkMode 0 no benchmark, 1 print pretty, 2 print csv
  */
-void doBenchmark(int rows, int columns, int iterations){
+void doBenchmark(int rows, int columns, int iterations, int benchmarkMode){
   float matrix[rows * columns];
   float vector[columns];
   float output[rows];
@@ -65,17 +77,20 @@ void doBenchmark(int rows, int columns, int iterations){
 
   struct timespec startTime;
   struct timespec endTime;
-  clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &startTime);
+  clock_gettime(CLOCK_REALTIME, &startTime);
   for(int i = 0; i < iterations; i++){
     matVecProduct(&matrix[0], &vector[0], &output[0], rows, columns);
   }
-  clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &endTime);
+  clock_gettime(CLOCK_REALTIME, &endTime);
   long difference = computeTimeDiff(&startTime, &endTime);
   double millisecondTime = difference / 1.0 * MS_PER_SEC / NS_PER_SEC;
 
-  int nthreads    = omp_get_num_threads();
-  printf("%d iterations of [%d x %d] * [%d] took %lf ms on %d threads\n",
-         iterations, rows, columns, rows, millisecondTime, nthreads);
+  if(benchmarkMode == 1){
+    printf("%d iterations of [%d x %d] * [%d] took %lf ms on %d threads\n",
+           iterations, rows, columns, rows, millisecondTime, threadCount);
+  } else {
+    printf("%d, %d, %d, %d, %f\n", threadCount, iterations, rows, columns, millisecondTime);
+  }
 }
 
 /**
@@ -124,10 +139,13 @@ void doBasicDemoMultiplication(int rows, int columns){
     printf("Too many elements to print nicely\n");
   }
 
+  float actual   = matSum(&output[0], rows, 1);
+  float expected = matSum(&matrix[0], rows, columns);
+
   printf("Sum\n");
-  printf("%.4f\n", matSum(&output[0], rows, 1));
+  printf("%.4f\n", actual);
   printf("Expected sum\n");
-  printf("%.4f\n", matSum(&matrix[0], rows, columns));
+  printf("%.4f\n", expected);
 }
 
 /**
@@ -193,11 +211,17 @@ void initConst(float * data, int rows, int columns, float initVal){
  */
 void matVecProduct(float * matrix, float * vector, float * output, int rows,
                    int columns){
-  for(int r = 0; r < rows; r++){
+  int r,c;
+  #pragma \
+  omp parallel for schedule(static) shared(matrix, vector, output) private(r, c)
+  for(r = 0; r < rows; r++){
     output[r] = 0;
-    for(int c = 0; c < columns; c++){
+    for(c = 0; c < columns; c++){
       int index = c * rows + r;
       output[r] += vector[r] * matrix[index];
+    }
+    if(omp_get_thread_num() == 0){
+      threadCount = omp_get_num_threads();
     }
   }
 }
