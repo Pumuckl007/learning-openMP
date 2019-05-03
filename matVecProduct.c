@@ -78,7 +78,8 @@ void doBenchmark(int rows, int columns, int iterations, int benchmarkMode){
   struct timespec startTime;
   struct timespec endTime;
   clock_gettime(CLOCK_REALTIME, &startTime);
-  for(int i = 0; i < iterations; i++){
+  int i;
+  for(i = 0; i < iterations; i++){
     matVecProduct(&matrix[0], &vector[0], &output[0], rows, columns);
   }
   clock_gettime(CLOCK_REALTIME, &endTime);
@@ -157,8 +158,10 @@ void doBasicDemoMultiplication(int rows, int columns){
  * @param columns the number of columns
  */
 void initHilbert(float * data, int rows, int columns){
-  for(int c = 0; c < columns; c++){
-    for(int r = 0; r < rows; r++){
+  int c;
+  int r;
+  for(c = 0; c < columns; c++){
+    for(r = 0; r < rows; r++){
       int index = c * rows + r;
       // value is c + r + 1 not c + r - 1 b/c c & r start at 0
       data[index] = 1.0 / ( c + r + 1 );
@@ -174,8 +177,10 @@ void initHilbert(float * data, int rows, int columns){
  * @param columns the number of columns
  */
 void printMat(float * data, int rows, int columns){
-  for(int r = 0; r < rows; r++){
-    for(int c = 0; c < columns; c++){
+  int r;
+  int c;
+  for(r = 0; r < rows; r++){
+    for(c = 0; c < columns; c++){
       int index = c * rows + r;
       printf("%.3f ", data[index]);
     }
@@ -192,8 +197,9 @@ void printMat(float * data, int rows, int columns){
  * @param initVal the value to initialise the matrix with
  */
 void initConst(float * data, int rows, int columns, float initVal){
-  for(int c = 0; c < columns; c++){
-    for(int r = 0; r < rows; r++){
+  int c, r;
+  for(c = 0; c < columns; c++){
+    for(r = 0; r < rows; r++){
       int index = c * rows + r;
       data[index] = initVal;
     }
@@ -236,8 +242,9 @@ void matVecProduct(float * matrix, float * vector, float * output, int rows,
  */
 float matSum(float * matrix, int rows, int columns){
   float output = 0;
-  for(int r = 0; r < rows; r++){
-    for(int c = 0; c < columns; c++){
+  int r, c;
+  for(r = 0; r < rows; r++){
+    for(c = 0; c < columns; c++){
       int index = c * rows + r;
       output += matrix[index];
     }
