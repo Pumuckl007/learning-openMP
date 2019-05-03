@@ -249,4 +249,5 @@ float matSum(float * matrix, int rows, int columns){
       output += matrix[index];
     }
   }
+  return output;
 }
