@@ -68,9 +68,12 @@ static int threadCount = 0;
  * @param benchmarkMode 0 no benchmark, 1 print pretty, 2 print csv
  */
 void doBenchmark(int rows, int columns, int iterations, int benchmarkMode){
-  float matrix[rows * columns];
-  float vector[columns];
-  float output[rows];
+  // float matrix[rows * columns];
+  float * matrix = malloc(sizeof(float) * rows * columns);
+  // float vector[columns];
+  float * vector = malloc(sizeof(float) * columns);
+  // float output[rows];
+  float * output = malloc(sizeof(float) * rows);
 
   initHilbert(&matrix[0], rows, columns);
   initConst(&vector[0], rows, 1, 1);
@@ -92,6 +95,9 @@ void doBenchmark(int rows, int columns, int iterations, int benchmarkMode){
   } else {
     printf("%d, %d, %d, %d, %f\n", threadCount, iterations, rows, columns, millisecondTime);
   }
+  free(matrix);
+  free(vector);
+  free(output);
 }
 
 /**
@@ -118,13 +124,17 @@ long computeTimeDiff(struct timespec *start, struct timespec *end){
  * @param columns the number of columns to use
  */
 void doBasicDemoMultiplication(int rows, int columns){
-  float matrix[rows * columns];
+  // float matrix[rows * columns];
+  float * matrix = malloc(sizeof(float) * rows * columns);
+  // float vector[columns];
+  float * vector = malloc(sizeof(float) * columns);
+  // float output[rows];
+  float * output = malloc(sizeof(float) * rows);
+
   initHilbert(&matrix[0], rows, columns);
 
-  float vector[columns];
   initConst(&vector[0], rows, 1, 1);
 
-  float output[rows];
   matVecProduct(&matrix[0], &vector[0], &output[0], rows, columns);
 
   int shouldPrint = rows <= MAX_PRINT_DIM && columns <= MAX_PRINT_DIM;
@@ -147,6 +157,10 @@ void doBasicDemoMultiplication(int rows, int columns){
   printf("%.4f\n", actual);
   printf("Expected sum\n");
   printf("%.4f\n", expected);
+
+  free(matrix);
+  free(vector);
+  free(output);
 }
 
 /**
