@@ -48,6 +48,11 @@ int main(int argc, char * argv[]){
   long rows    = strtol(argv[1 + benchmarkMode], NULL, 10);
   long columns = strtol(argv[2 + benchmarkMode], NULL, 10);
 
+  if(rows != columns){
+    fprintf(stderr, "Rows and columns must be the same\n");
+    return -1;
+  }
+
   if(benchmarkMode){
     long iterations = strtol(argv[3 + benchmarkMode], NULL, 10);
     doBenchmark(rows, columns, iterations, benchmarkMode);
@@ -69,11 +74,11 @@ static int threadCount = 0;
  */
 void doBenchmark(int rows, int columns, int iterations, int benchmarkMode){
   // float matrix[rows * columns];
-  float * matrix = malloc(sizeof(float) * rows * columns);
+  float * matrix = (float *) malloc(sizeof(float) * rows * columns);
   // float vector[columns];
-  float * vector = malloc(sizeof(float) * columns);
+  float * vector = (float *) malloc(sizeof(float) * columns);
   // float output[rows];
-  float * output = malloc(sizeof(float) * rows);
+  float * output = (float *) malloc(sizeof(float) * rows);
 
   initHilbert(&matrix[0], rows, columns);
   initConst(&vector[0], rows, 1, 1);
@@ -125,27 +130,27 @@ long computeTimeDiff(struct timespec *start, struct timespec *end){
  */
 void doBasicDemoMultiplication(int rows, int columns){
   // float matrix[rows * columns];
-  float * matrix = malloc(sizeof(float) * rows * columns);
+  float * matrix = (float *) malloc(sizeof(float) * rows * columns);
   // float vector[columns];
-  float * vector = malloc(sizeof(float) * columns);
+  float * vector = (float *) malloc(sizeof(float) * columns);
   // float output[rows];
-  float * output = malloc(sizeof(float) * rows);
+  float * output = (float *) malloc(sizeof(float) * rows);
 
-  initHilbert(&matrix[0], rows, columns);
+  initHilbert(matrix, rows, columns);
 
-  initConst(&vector[0], rows, 1, 1);
+  initConst(vector, rows, 1, 1);
 
-  matVecProduct(&matrix[0], &vector[0], &output[0], rows, columns);
+  matVecProduct(matrix, vector, output, rows, columns);
 
   int shouldPrint = rows <= MAX_PRINT_DIM && columns <= MAX_PRINT_DIM;
 
   if(shouldPrint){
     printf("Matrix:\n");
-    printMat(&matrix[0], rows, columns);
+    printMat(matrix, rows, columns);
     printf("Vector\n");
-    printMat(&vector[0], columns, 1);
+    printMat(vector, columns, 1);
     printf("Product\n");
-    printMat(&output[0], 1, rows);
+    printMat(output, 1, rows);
   } else {
     printf("Too many elements to print nicely\n");
   }
